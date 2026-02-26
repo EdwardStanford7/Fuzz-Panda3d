@@ -1,0 +1,5 @@
+panda3d
+harness
+out
+*.dSYM
+.DS_Store
