@@ -41,13 +41,15 @@ ifeq ($(UNAME_S),Darwin)
 	-framework SystemConfiguration
 else # GNU+Linux
 	CCFLAGS += \
+		-I$(INCDIR) \
+		$(LIBDIR)/libp3framework.a \
+		$(LIBDIR)/libpandagl.a \
+		$(LIBDIR)/libpandaegg.a \
 		$(LIBDIR)/libpanda.a \
 		$(LIBDIR)/libpandaexpress.a \
-		$(LIBDIR)/libp3framework.a \
 		$(LIBDIR)/libp3dtool.a \
 		$(LIBDIR)/libp3dtoolconfig.a \
 		$(LIBDIR)/libp3direct.a \
-		-I$(INCDIR) \
 		-lssl -lcrypto \
 		-lpng \
 		-ljpeg \
@@ -57,8 +59,10 @@ else # GNU+Linux
 		-lsquish \
 		-lopusfile -lopus \
 		-lvorbisfile -lvorbis -logg \
-		-lobjc 
-		# -lIlmImf -lHalf
+		-lobjc \
+		-lX11 \
+		-lGL \
+		-lOpenEXR -lImath
 endif
 
 # MacOS specific, super complicated linking flags to force load all the necessary libraries.
