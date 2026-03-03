@@ -47,7 +47,18 @@ else # GNU+Linux
 		$(LIBDIR)/libp3dtool.a \
 		$(LIBDIR)/libp3dtoolconfig.a \
 		$(LIBDIR)/libp3direct.a \
-		-I$(INCDIR)
+		-I$(INCDIR) \
+		-lssl -lcrypto \
+		-lpng \
+		-ljpeg \
+		-lz \
+		-ltiff \
+		-lIex -lIlmThread \
+		-lsquish \
+		-lopusfile -lopus \
+		-lvorbisfile -lvorbis -logg \
+		-lobjc 
+		# -lIlmImf -lHalf
 endif
 
 # MacOS specific, super complicated linking flags to force load all the necessary libraries.
