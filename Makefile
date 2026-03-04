@@ -1,4 +1,4 @@
-.PHONY: all clean run
+.PHONY: all run clean
 
 CXX = afl-clang-fast++
 CXXFLAGS = -g -O1 -fno-omit-frame-pointer
@@ -46,10 +46,12 @@ else # GNU+Linux
 		-lOpenEXR -lImath
 endif
 
+all: harness
+
 harness: harness.cpp
 	$(CXX) $(CXXFLAGS) harness.cpp -o harness $(CCFLAGS)
 
-fuzz: harness
+run: harness
 	afl-fuzz -i in -o out -- ./harness @@
 
 clean:
