@@ -8,31 +8,46 @@ LIBDIR = panda3d/lib
 
 UNAME_S := $(shell uname -s)
 
-# Libraries used by both platforms
-COMMON_LIBS := -lp3framework -lpanda -lpandaexpress -lp3dtool -lp3dtoolconfig -lp3direct -lpandagl -lpandaegg \
-							-lssl -lcrypto -lpng -ljpeg -lz -ltiff -lIex -lIlmThread -lsquish -lopusfile -lopus -lvorbisfile -lvorbis -logg -lobjc  \
-
-LDLIBS :=
+CCFLAGS :=
 ifeq ($(UNAME_S),Darwin)
-# macOS: link frameworks
-	LDLIBS += $(COMMON_LIBS) -lIlmImf -lHalf
-
-# Framework flags must come after -l flags
-	FRAMEWORKS := \
+	CCFLAGS += \
+		-I$(INCDIR) \
+		-L$(LIBDIR) \
+		-lp3framework -lpanda -lpandaexpress -lp3dtool -lp3dtoolconfig -lp3direct -lpandagl -lpandaegg \
+		-lssl -lcrypto -lpng -ljpeg -lz -ltiff -lIex -lIlmThread -lsquish -lopusfile -lopus -lvorbisfile -lvorbis -logg -lobjc -lIlmImf -lHalf \
 		-framework CoreVideo \
 		-framework Carbon \
 		-framework IOKit \
 		-framework AppKit \
-		-framework OpenGL \
-
-	LDLIBS += $(FRAMEWORKS)
-else
-# GNU/Linux
-	LDLIBS += $(COMMON_LIBS) -lX11 -lGL -lOpenEXR -lImath
+		-framework OpenGL
+else # GNU+Linux
+	CCFLAGS += \
+		-I$(INCDIR) \
+		$(LIBDIR)/libp3framework.a \
+		$(LIBDIR)/libpandagl.a \
+		$(LIBDIR)/libpandaegg.a \
+		$(LIBDIR)/libpanda.a \
+		$(LIBDIR)/libpandaexpress.a \
+		$(LIBDIR)/libp3dtool.a \
+		$(LIBDIR)/libp3dtoolconfig.a \
+		$(LIBDIR)/libp3direct.a \
+		-lssl -lcrypto \
+		-lpng \
+		-ljpeg \
+		-lz \
+		-ltiff \
+		-lIex -lIlmThread \
+		-lsquish \
+		-lopusfile -lopus \
+		-lvorbisfile -lvorbis -logg \
+		-lobjc \
+		-lX11 \
+		-lGL \
+		-lOpenEXR -lImath
 endif
 
 harness: harness.cpp
-	$(CXX) $(CXXFLAGS) harness.cpp -o harness -I$(INCDIR) -L$(LIBDIR) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) harness.cpp -o harness $(CCFLAGS)
 
 fuzz: harness
 	afl-fuzz -i in -o out -- ./harness @@
