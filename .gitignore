@@ -4,3 +4,4 @@ harness
 out
 *.dSYM
 .DS_Store
+.cache

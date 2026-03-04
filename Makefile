@@ -43,7 +43,7 @@ else # GNU+Linux
 		-lobjc \
 		-lX11 \
 		-lGL \
-		-lOpenEXR -lImath
+		-lOpenEXR -lImath -lfftw3 -lCg -lCgGL
 endif
 
 all: harness
