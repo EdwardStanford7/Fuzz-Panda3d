@@ -24,26 +24,11 @@ else # GNU+Linux
 	CCFLAGS += \
 		-I$(INCDIR) \
 		$(LIBDIR)/libp3framework.a \
-		$(LIBDIR)/libpandagl.a \
-		$(LIBDIR)/libpandaegg.a \
 		$(LIBDIR)/libpanda.a \
 		$(LIBDIR)/libpandaexpress.a \
 		$(LIBDIR)/libp3dtool.a \
 		$(LIBDIR)/libp3dtoolconfig.a \
-		$(LIBDIR)/libp3direct.a \
-		-lssl -lcrypto \
-		-lpng \
-		-ljpeg \
-		-lz \
-		-ltiff \
-		-lIex -lIlmThread \
-		-lsquish \
-		-lopusfile -lopus \
-		-lvorbisfile -lvorbis -logg \
-		-lobjc \
-		-lX11 \
-		-lGL \
-		-lOpenEXR -lImath -lfftw3 -lCg -lCgGL
+		$(LIBDIR)/libp3direct.a
 endif
 
 all: harness

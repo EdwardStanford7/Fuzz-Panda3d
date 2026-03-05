@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
     // create a text node similarly to how direct onscreentext would
     PT(TextNode) textNode = new TextNode("text");
     textNode->set_text(buf.data());
+    np.attach_new_node(textNode);
     // Force some internal processing
     btn->set_active(true);
     btn->set_active(false);
@@ -58,8 +59,9 @@ int main(int argc, char **argv) {
     textNode->set_card_decal(true);
 
     np.remove_node();
-  }
 
-  framework.close_framework();
+    framework.main_loop();
+    framework.close_framework();
+  }
   return 0;
 }
