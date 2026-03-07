@@ -34,7 +34,8 @@ endif
 all: harness
 
 harness: harness.cpp
-	$(CXX) $(CXXFLAGS) harness.cpp -o harness $(CCFLAGS)
+	$(CXX) $(CXXFLAGS) -fsanitize=fuzzer \
+		harness.cpp -o harness $(CCFLAGS)
 
 run: harness
 	afl-fuzz -i in -o out -- ./harness @@
