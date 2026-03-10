@@ -1,4 +1,4 @@
-.PHONY: all run clean
+.PHONY: run clean
 
 CXX = afl-clang-fast++
 CXXFLAGS = -g -O1 -fno-omit-frame-pointer
@@ -31,14 +31,30 @@ else # GNU+Linux
 		$(LIBDIR)/libp3direct.a
 endif
 
-all: harness
-
-harness: harness.cpp
+textnode-harness: textnode-harness.cpp
 	$(CXX) $(CXXFLAGS) -fsanitize=fuzzer \
-		harness.cpp -o harness $(CCFLAGS)
+		textnode-harness.cpp -o harness $(CCFLAGS)
+
+texture-harness: texture-harness.cpp
+	$(CXX) $(CXXFLAGS) -fsanitize=fuzzer \
+		texture-harness.cpp -o harness $(CCFLAGS)
+
+textnode-triager: triager.cpp textnode-harness.cpp
+	$(CXX) $(CXXFLAGS) -fsanitize=address \
+		triager.cpp \
+		textnode-harness.cpp -o triager $(CCFLAGS)
+
+texture-triager: triager.cpp texture-harness.cpp
+	$(CXX) $(CXXFLAGS) -fsanitize=address \
+		triager.cpp \
+		texture-harness.cpp -o triager $(CCFLAGS)
+
+texture: texture-harness texture-triager
+
+textnode: textnode-harness textnode-triager
 
 run: harness
 	afl-fuzz -i in -o out -- ./harness @@
 
 clean:
-	rm -f harness
+	rm -f harness triager
