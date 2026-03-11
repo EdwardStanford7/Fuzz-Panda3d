@@ -44,6 +44,7 @@ extern "C" int LLVMFuzzerTestOneInput(const char *data, size_t len) {
 
   framework.set_exit_flag();
   framework.main_loop();
-  framework.close_framework();
+
+  delete btn;
   return 0;
 }
