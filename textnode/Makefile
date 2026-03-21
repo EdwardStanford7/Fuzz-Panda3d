@@ -33,27 +33,15 @@ else # GNU+Linux
 		$(LIBDIR)/libp3direct.a
 endif
 
-textnode-harness: textnode-harness.cpp
+textnode-harness: harness.cpp
 	$(CXX) $(CXXFLAGS) -fsanitize=fuzzer \
-		textnode-harness.cpp -o harness $(CCFLAGS)
+		$^ -o harness $(CCFLAGS)
 
-texture-harness: texture-harness.cpp
-	$(CXX) $(CXXFLAGS) -fsanitize=fuzzer \
-		texture-harness.cpp -o harness $(CCFLAGS)
-
-textnode-triager: triager.cpp textnode-harness.cpp
+textnode-triager: ../triager.cpp harness.cpp
 	$(CXX) $(CXXFLAGS) -fsanitize=address \
-		triager.cpp \
-		textnode-harness.cpp -o triager $(CCFLAGS)
+		$^ -o triager $(CCFLAGS)
 
-texture-triager: triager.cpp texture-harness.cpp
-	$(CXX) $(CXXFLAGS) -fsanitize=address \
-		triager.cpp \
-		texture-harness.cpp -o triager $(CCFLAGS)
-
-texture: texture-harness texture-triager
-
-textnode: textnode-harness textnode-triager
+all: textnode-triager textnode-harness
 
 run: harness
 	afl-fuzz -i in -o out -- ./harness @@
