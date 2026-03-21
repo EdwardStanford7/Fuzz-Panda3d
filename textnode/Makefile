@@ -23,14 +23,9 @@ ifeq ($(UNAME_S),Darwin)
 else # GNU+Linux
 	CCFLAGS += \
 		-I$(INCDIR) \
+		-L$(LIBDIR) \
 		-lEGL \
-		$(LIBDIR)/libp3framework.a \
-		$(LIBDIR)/libp3tinydisplay.a \
-		$(LIBDIR)/libpanda.a \
-		$(LIBDIR)/libpandaexpress.a \
-		$(LIBDIR)/libp3dtool.a \
-		$(LIBDIR)/libp3dtoolconfig.a \
-		$(LIBDIR)/libp3direct.a
+		-lp3framework -lpanda -lpandaexpress -lp3dtool -lp3dtoolconfig -lp3direct
 endif
 
 textnode-harness: harness.cpp
