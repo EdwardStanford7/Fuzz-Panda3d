@@ -6,3 +6,4 @@ out
 *.dSYM
 .DS_Store
 .cache
+.vscode
