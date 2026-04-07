@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import subprocess
 import time
 
@@ -7,7 +8,7 @@ import time
 class Args(argparse.Namespace):
     target: str = ""
     crash_dir: str = ""
-    output_file: str = ""
+    output_dir: str = ""
 
 
 def extract_summary(stderr: str) -> str | None:
@@ -48,6 +49,23 @@ def count_crash_files(crash_dir: str) -> int:
     return sum(1 for fname in os.listdir(crash_dir) if fname.startswith("id:"))
 
 
+def write_crash_report(
+    output_dir: str,
+    crash_number: int,
+    crash_path: str,
+    stderr: str,
+) -> None:
+    crash_output_dir = os.path.join(output_dir, f"crash_{crash_number}")
+    os.makedirs(crash_output_dir, exist_ok=True)
+
+    repro_file = os.path.join(crash_output_dir, os.path.basename(crash_path))
+    _ = shutil.copy2(crash_path, repro_file)
+
+    report_file = os.path.join(crash_output_dir, "report.txt")
+    with open(report_file, "w", encoding="utf-8") as f:
+        _ = f.write(stderr)
+
+
 def parse_args() -> Args:
     parser = argparse.ArgumentParser(description="Run a target against AFL crashes and summarize ASAN findings.")
     _ = parser.add_argument(
@@ -65,11 +83,11 @@ def parse_args() -> Args:
         help="Directory containing crash inputs.",
     )
     _ = parser.add_argument(
-        "--output-file",
-        dest="output_file",
-        metavar="OUTPUT_FILE",
+        "--output-dir",
+        dest="output_dir",
+        metavar="OUTPUT_DIR",
         required=True,
-        help="File to write summary counts to.",
+        help="Output directory where crash reports and the summary file will be written.",
     )
     return parser.parse_args(namespace=Args())
 
@@ -77,7 +95,7 @@ def parse_args() -> Args:
 def main() -> None:
     start_time = time.monotonic()
     args = parse_args()
-    best_crashes: dict[str, tuple[int, str]] = {}
+    best_crashes: dict[str, tuple[int, str, str, str]] = {}
     total_crashes_triaged = 0
     crash_dirs = find_crash_dirs(args.crash_dir)
     crash_inputs = find_crash_inputs(args.crash_dir, crash_dirs)
@@ -117,25 +135,25 @@ def main() -> None:
             existing_crash = best_crashes.get(summary)
 
             if existing_crash is None:
-                best_crashes[summary] = (file_size, display_path)
+                best_crashes[summary] = (file_size, display_path, fpath, result.stderr)
                 print(f"{summary}")
             elif file_size < existing_crash[0]:
-                best_crashes[summary] = (file_size, display_path)
+                best_crashes[summary] = (file_size, display_path, fpath, result.stderr)
                 print(f"Smaller reproducer found ({file_size} bytes): {summary}")
             else:
                 print(f"Duplicate crash, keeping smaller reproducer: {summary}")
         else:
             print("No ASAN summary found.")
 
-    output_dir = os.path.dirname(args.output_file)
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
 
-    with open(args.output_file, "w", encoding="utf-8") as f:
-        for summary, (_file_size, crash_name) in sorted(best_crashes.items(), key=lambda item: item[1][0]):
-            _ = f.write(f"{crash_name}: {summary}\n")
+    for crash_number, (_summary, (_file_size, _crash_name, crash_path, stderr)) in enumerate(
+        sorted(best_crashes.items(), key=lambda item: item[1][0]),
+        start=1,
+    ):
+        write_crash_report(args.output_dir, crash_number, crash_path, stderr)
 
-    summary_file = os.path.join(output_dir or ".", "summary")
+    summary_file = os.path.join(args.output_dir, "summary")
     elapsed_seconds = time.monotonic() - start_time
     with open(summary_file, "w", encoding="utf-8") as f:
         _ = f.write(f"Ran for (seconds): {elapsed_seconds:.2f}\n")
@@ -143,7 +161,7 @@ def main() -> None:
         _ = f.write(f"Unique Crashes: {len(best_crashes)}\n")
         _ = f.write(f"Total Crashes: {total_crashes_triaged}\n")
 
-    print("\nDone. Results saved to:", args.output_file)
+    print("\nDone. Crash reports saved under:", args.output_dir)
     print("Summary saved to:", summary_file)
     print("\a", end="", flush=True)
 
