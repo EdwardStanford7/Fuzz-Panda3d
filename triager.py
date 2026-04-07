@@ -4,6 +4,11 @@ import os
 import shutil
 import subprocess
 import time
+from itertools import repeat
+
+type CrashInput = tuple[str, str]
+type TriageResult = tuple[str, str, str, int]
+type BestCrash = tuple[int, str, str, str]
 
 
 class Args(argparse.Namespace):
@@ -32,8 +37,8 @@ def find_crash_dirs(crash_root: str) -> list[str]:
     return sorted(crash_dirs)
 
 
-def find_crash_inputs(crash_root: str, crash_dirs: list[str]) -> list[tuple[str, str]]:
-    crash_inputs: list[tuple[str, str]] = []
+def find_crash_inputs(crash_root: str, crash_dirs: list[str]) -> list[CrashInput]:
+    crash_inputs: list[CrashInput] = []
     for current_root in crash_dirs:
         filenames = os.listdir(current_root)
         for fname in sorted(filenames):
@@ -52,10 +57,10 @@ def count_crash_files(crash_dir: str) -> int:
 
 
 def triage_crash(
+    crash_input: CrashInput,
     target: str,
-    display_path: str,
-    fpath: str,
-) -> tuple[str, str, str, int] | None:
+) -> TriageResult | None:
+    display_path, fpath = crash_input
     try:
         result = subprocess.run(
             [target, fpath],
@@ -88,6 +93,32 @@ def write_crash_report(
     report_file = os.path.join(crash_output_dir, "report.txt")
     with open(report_file, "w", encoding="utf-8") as f:
         _ = f.write(stderr)
+
+
+def select_best_crashes(
+    triage_results: list[TriageResult],
+) -> dict[str, BestCrash]:
+    best_crashes: dict[str, BestCrash] = {}
+
+    for display_path, fpath, stderr, file_size in sorted(triage_results, key=lambda item: item[1]):
+        print(f"[+] Finished {fpath}")
+
+        summary = extract_summary(stderr)
+        if summary is None:
+            print("[!] No ASAN summary found.")
+            continue
+
+        existing_crash = best_crashes.get(summary)
+        if existing_crash is None:
+            best_crashes[summary] = (file_size, display_path, fpath, stderr)
+            print(f"{summary}")
+        elif file_size < existing_crash[0]:
+            best_crashes[summary] = (file_size, display_path, fpath, stderr)
+            print(f"Smaller reproducer found ({file_size} bytes): {summary}")
+        else:
+            print(f"Duplicate crash, keeping smaller reproducer: {summary}")
+
+    return best_crashes
 
 
 def parse_args() -> Args:
@@ -130,52 +161,33 @@ def parse_args() -> Args:
 def main() -> None:
     start_time = time.monotonic()
     args = parse_args()
-    best_crashes: dict[str, tuple[int, str, str, str]] = {}
     crash_dirs = find_crash_dirs(args.crash_dir)
     crash_inputs = find_crash_inputs(args.crash_dir, crash_dirs)
 
     print(f"Found {len(crash_dirs)} crash directories.")
     print(f"Using {args.jobs} parallel workers.")
+    print(f"Queued {len(crash_inputs)} total crash files.")
 
     for crash_dir in crash_dirs:
         relative_crash_dir = os.path.relpath(crash_dir, args.crash_dir)
         print(f"\n[>] Queued {relative_crash_dir} ({count_crash_files(crash_dir)} crash files)")
 
+    print("\n[>] Collecting crash results")
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.jobs) as executor:
-        future_to_path = {
-            executor.submit(triage_crash, args.target, display_path, fpath): fpath
-            for display_path, fpath in crash_inputs
-        }
+        triage_results: list[TriageResult] = []
+        for index, result in enumerate(
+            executor.map(triage_crash, crash_inputs, repeat(args.target)),
+            start=1,
+        ):
+            if index % 100 == 0 or index == len(crash_inputs):
+                print(f"[>] Processed {index}/{len(crash_inputs)} crash files...")
 
-        for future in concurrent.futures.as_completed(future_to_path):
-            fpath = future_to_path[future]
-            try:
-                result = future.result()
-            except Exception as exc:
-                print(f"Worker failed for {fpath}: {exc}")
-                continue
+            if result is not None:
+                triage_results.append(result)
 
-            if result is None:
-                print(f"Timeout, skipping: {fpath}")
-                continue
-
-            display_path, fpath, stderr, file_size = result
-            print(f"[+] Finished {fpath}")
-
-            summary = extract_summary(stderr)
-            if summary:
-                existing_crash = best_crashes.get(summary)
-
-                if existing_crash is None:
-                    best_crashes[summary] = (file_size, display_path, fpath, stderr)
-                    print(f"{summary}")
-                elif file_size < existing_crash[0]:
-                    best_crashes[summary] = (file_size, display_path, fpath, stderr)
-                    print(f"Smaller reproducer found ({file_size} bytes): {summary}")
-                else:
-                    print(f"Duplicate crash, keeping smaller reproducer: {summary}")
-            else:
-                print("No ASAN summary found.")
+    print(f"[>] Collected {len(triage_results)}/{len(crash_inputs)} crash results")
+    print("\n[>] Picking our favorites!")
+    best_crashes = select_best_crashes(triage_results)
 
     os.makedirs(args.output_dir, exist_ok=True)
 
