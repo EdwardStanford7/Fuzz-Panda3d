@@ -2,29 +2,13 @@
 
 We are FUZZING this [pander](<https://github.com/panda3d/panda3d>).
 
-### Build on MacOS
+## Building panda3d with AFL++ instrumentation
 
-1. get a better OS
-2. in case of failing step 1 use the `./macos_build.sh` script
-
-### Build on GNU+Linux
-
-1. good
-2. use the `./gnulinux_build.sh` script
-
-Note we currently focus on debian.
-You can use this command to install most dependencies:
-```sh
-sudo apt-get install build-essential pkg-config fakeroot python3-dev libpng-dev libjpeg-dev libtiff-dev zlib1g-dev libssl-dev libx11-dev libgl1-mesa-dev libxrandr-dev libxxf86dga-dev libxcursor-dev bison flex libfreetype6-dev libvorbis-dev libeigen3-dev libopenal-dev libode-dev libbullet-dev nvidia-cg-toolkit libgtk-3-dev libassimp-dev libopenexr-dev
-```
-
-### Build on Windows
-
-1. no
-
-### Build on FreeBSD
-
-1. this would be cool but I'm not doing this
+Currently we support MacOS through `macos_build.sh`
+and GNU+Linux with `gnulinux_build.sh`.
+We do not support Windows as AFL++ doesn't, especially,
+and we don't support any of the BSDs as none of us use them.
+If desired, we can discuss changes in this regard.
 
 ## After building panda3d...
 
@@ -46,4 +30,20 @@ on GitHub:
 - [SEGV in stl_tree](<https://github.com/panda3d/panda3d/issues/1819>)
 - [SEGV in GeomVertexArrayFormat::is_registered](<https://github.com/panda3d/panda3d/issues/1820>)
 - [SEGV in Geom::reset_geom_rendering](<https://github.com/panda3d/panda3d/issues/1821>)
+
+### Project organization
+
+The general workflow of fuzzing with AFL++ in this project is to first
+build panda3d with AFL++ instrumentation (as specified above)
+and then, with your working directory corresponding to some format you'd like to fuzz,
+you can build the fuzzing harness with `make harness`.
+From here we have a pattern of either `make fuzz` for single-threaded fuzzing
+or `make parallel` for parallel fuzzing.
+Distributed fuzzing is rather primitive for our project,
+we really just have a few independent hardware nodes working at once.
+
+Triaging is accomplished by making the `triager` binary with `make triager`,
+and either using the supporting `triager.py` script in the root of this project,
+or by running `./triager <crash-file>`
+where `<crash-file>` is some crashing case discovered by AFL++.
 
