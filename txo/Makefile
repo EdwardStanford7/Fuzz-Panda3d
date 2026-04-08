@@ -25,7 +25,7 @@ else # GNU+Linux
 endif
 
 run: harness
-	afl-fuzz -x egg.dict -i in -o out -- ./harness @@
+	afl-fuzz -i in -o out -- ./harness @@
 
 harness: harness.cpp
 	$(CXX) $(CXXFLAGS) -fsanitize=fuzzer \
