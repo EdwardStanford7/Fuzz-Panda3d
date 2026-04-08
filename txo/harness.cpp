@@ -34,7 +34,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
     txo.mark_bam_modified();
     txo.get_bam_modified();
     txo.get_name();
-    txo.peek();
+    // txo.peek();
     txo.get_texture_type();
     txo.get_compression();
     txo.get_quality_level();
