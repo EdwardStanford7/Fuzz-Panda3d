@@ -1,0 +1,1 @@
+This directory is intentionally left blank. Extract the zip file containing the crashing seeds for bam, egg and txo here. 

@@ -1,0 +1,1 @@
+This directory is intentioanlly left blank, use the triager script to put the crash summaries in here.
